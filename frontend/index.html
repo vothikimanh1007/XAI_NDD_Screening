@@ -1,0 +1,90 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XAI Early Screening for NDDs</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.18.3/plotly.min.js"></script> <!-- For visualizations -->
+</head>
+<body>
+
+    <div class="container">
+        <h1>XAI Early Screening for Neurodevelopmental Disorders</h1>
+
+        <!-- Input Form for Clinical Data -->
+        <form id="dataForm">
+            <label for="age">Age:</label>
+            <input type="number" id="age" name="age" required><br><br>
+
+            <label for="IQ">IQ:</label>
+            <input type="number" id="IQ" name="IQ" required><br><br>
+
+            <label for="symptom_score">Symptom Score:</label>
+            <input type="number" id="symptom_score" name="symptom_score" required><br><br>
+
+            <button type="submit">Predict</button>
+        </form>
+
+        <div id="result">
+            <h3>Prediction: <span id="predictionResult"></span></h3>
+            <div id="shapPlot"></div> <!-- Placeholder for SHAP Plot -->
+        </div>
+
+    </div>
+
+    <script>
+        // Handle form submission
+        document.getElementById("dataForm").onsubmit = async function(event) {
+            event.preventDefault();
+
+            // Get input data
+            const age = document.getElementById('age').value;
+            const IQ = document.getElementById('IQ').value;
+            const symptom_score = document.getElementById('symptom_score').value;
+
+            // Create data object for prediction
+            const data = {
+                clinical_data: [
+                    { age: age, IQ: IQ, symptom_score: symptom_score }
+                ]
+            };
+
+            // Send data to Flask API for prediction
+            const response = await fetch('/predict', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+
+            // Display prediction result
+            document.getElementById("predictionResult").textContent = result.prediction;
+
+            // Plot SHAP values using Plotly
+            const shap_values = result.shap_values;
+            const trace = {
+                x: shap_values.map((val, index) => `Feature ${index+1}`),
+                y: shap_values,
+                type: 'bar'
+            };
+            const layout = {
+                title: 'SHAP Feature Importance',
+                xaxis: {
+                    title: 'Features'
+                },
+                yaxis: {
+                    title: 'SHAP Value'
+                }
+            };
+
+            Plotly.newPlot('shapPlot', [trace], layout);
+        };
+    </script>
+
+</body>
+</html>
